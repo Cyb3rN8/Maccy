@@ -27,40 +27,40 @@ jobs:
             | tee test.log | grep -E '(error:|failed|passed|Test run|\*\* TEST)' || true
           grep -q '\*\* TEST SUCCEEDED \*\*' test.log
 
-      # Unsigned arm64 build; the app is signed locally. `-quiet` keeps only
-      # warnings and errors, so failures are readable in the job log.
+      # Unsigned arm64 build; the app is signed locally. Xcode 26.6's optimizer
+      # crashes on FloatingPanel's deinit in Release, so installed Xcode 26
+      # versions are tried newest first and the first that builds is used.
+      # `-quiet` keeps only warnings and errors in the job log.
       - name: Build
         run: |
-          set -o pipefail
-          xcodebuild build \
-            -project Maccy.xcodeproj \
-            -scheme Maccy \
-            -configuration Release \
-            -destination 'generic/platform=macOS' \
-            -derivedDataPath build \
-            -quiet \
-            ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            2>&1 | tee build.log
-
-      # Diagnostic only: the universal Release build failed on x86_64.
-      - name: Build x86_64 (diagnostic)
-        continue-on-error: true
-        run: |
-          set -o pipefail
-          xcodebuild build \
-            -project Maccy.xcodeproj \
-            -scheme Maccy \
-            -configuration Release \
-            -destination 'generic/platform=macOS' \
-            -derivedDataPath build-x86 \
-            -quiet \
-            ARCHS=x86_64 ONLY_ACTIVE_ARCH=NO \
-            CODE_SIGNING_ALLOWED=NO \
-            2>&1 | tee build-x86.log
+          ls -d /Applications/Xcode_26*.app
+          for xcode in $(ls -d /Applications/Xcode_26*.app | sort -rV); do
+            [ -L "$xcode" ] && continue
+            echo "::group::Release build with $xcode"
+            log="build-$(basename "$xcode" .app).log"
+            if DEVELOPER_DIR="$xcode/Contents/Developer" xcodebuild build \
+                -project Maccy.xcodeproj \
+                -scheme Maccy \
+                -configuration Release \
+                -destination 'generic/platform=macOS' \
+                -derivedDataPath "build/$(basename "$xcode" .app)" \
+                -quiet \
+                ARCHS=arm64 ONLY_ACTIVE_ARCH=NO \
+                CODE_SIGNING_ALLOWED=NO \
+                >"$log" 2>&1; then
+              echo "::endgroup::"
+              echo "Built with $xcode"
+              echo "APP_PATH=build/$(basename "$xcode" .app)/Build/Products/Release/Maccy.app" >>"$GITHUB_ENV"
+              exit 0
+            fi
+            grep -E "error:|Stack dump|^ for |Command .* failed" "$log" | head -20
+            echo "::endgroup::"
+            echo "::warning::Release build failed with $xcode"
+          done
+          exit 1
 
       - name: Package
-        run: ditto -c -k --keepParent build/Build/Products/Release/Maccy.app Maccy.zip
+        run: ditto -c -k --keepParent "$APP_PATH" Maccy.zip
 
       - uses: actions/upload-artifact@v4
         with:
