@@ -1,0 +1,57 @@
+name: Build
+
+on:
+  push:
+    branches-ignore: [master]
+  workflow_dispatch:
+
+jobs:
+  build:
+    # AppIcon.icon (Icon Composer) needs Xcode 26.
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode
+        run: xcodebuild -version
+
+      - name: Unit tests
+        run: |
+          xcodebuild test \
+            -project Maccy.xcodeproj \
+            -scheme Maccy \
+            -destination 'platform=macOS' \
+            -only-testing:MaccyTests \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee test.log | grep -E '(error:|failed|passed|Test run|\*\* TEST)' || true
+          grep -q '\*\* TEST SUCCEEDED \*\*' test.log
+
+      # Unsigned build; the app is signed locally with our own identity.
+      - name: Build
+        run: |
+          xcodebuild build \
+            -project Maccy.xcodeproj \
+            -scheme Maccy \
+            -configuration Release \
+            -destination 'generic/platform=macOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee build.log | grep -E '(error:|warning: .*RemotePaste|\*\* BUILD)' || true
+          grep -q '\*\* BUILD SUCCEEDED \*\*' build.log
+
+      - name: Package
+        run: ditto -c -k --keepParent build/Build/Products/Release/Maccy.app Maccy.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Maccy-unsigned
+          path: Maccy.zip
+          retention-days: 7
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs
+          path: '*.log'
+          retention-days: 7

@@ -1,5 +1,6 @@
 import AppKit
 import Defaults
+import Logging
 import Sauce
 
 class Clipboard {
@@ -11,6 +12,7 @@ class Clipboard {
   var changeCount: Int
 
   private let pasteboard = NSPasteboard.general
+  private let logger = Logger(label: "org.p0deje.Maccy")
 
   private var timer: Timer?
 
@@ -121,6 +123,11 @@ class Clipboard {
 
   // Based on https://github.com/Clipy/Clipy/blob/develop/Clipy/Sources/Services/PasteService.swift.
   func paste() {
+    if let remote = remotePasteSettings() {
+      pasteRemotely(settings: remote)
+      return
+    }
+
     Accessibility.check()
 
     // Add flag that left/right modifier key has been pressed.
@@ -146,6 +153,37 @@ class Clipboard {
     keyVUp?.flags = cmdFlag
     keyVDown?.post(tap: .cgSessionEventTap)
     keyVUp?.post(tap: .cgSessionEventTap)
+  }
+
+  // The frontmost app is a screen-sharing viewer: a posted Cmd+V would reach the
+  // remote Mac as a bare "v", so the receiver there pastes instead. The local
+  // clipboard keeps the item either way, and Screen Sharing syncs it to the
+  // remote Mac, so a physical Cmd+V there still works if delivery fails.
+  private func pasteRemotely(settings: RemotePasteSettings) {
+    guard let text = pasteboard.string(forType: .string), !text.isEmpty else {
+      logger.info("Remote paste skipped: item has no text; left on the clipboard")
+      return
+    }
+
+    let logger = self.logger
+    Task {
+      switch await RemotePasteClient.deliver(text, settings: settings) {
+      case .success(let host):
+        logger.info("Remote paste delivered to \(host)")
+      case .failure(let failure):
+        logger.warning("Remote paste failed (\(failure)); left on the clipboard")
+      }
+    }
+  }
+
+  private func remotePasteSettings() -> RemotePasteSettings? {
+    RemotePasteSettings.resolve(
+      bundleIdentifier: sourceApp?.bundleIdentifier,
+      enabled: Defaults[.remotePasteEnabled],
+      hosts: Defaults[.remotePasteHosts],
+      port: Defaults[.remotePastePort],
+      loadToken: RemotePasteToken.load
+    )
   }
 
   func clear() {

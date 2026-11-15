@@ -8,3 +8,10 @@
 "ClearHistoryOnQuitTooltip" = "退出應用程式時自動移除所有未釘選的項目。";
 "ClearSystemClipboard" = "同時清除系統剪貼簿";
 "ClearSystemClipboardTooltip" = "啟用後，清除歷史記錄也會清除系統目前的剪貼簿。";
+"RemotePaste" = "螢幕共享在前景時，在被控 Mac 上貼上";
+"RemotePasteDescription" = "螢幕共享會丟掉合成的 ⌘V，遠端只收到 v。開啟後，文字交給被控 Mac 上的貼上服務（POST /paste，帶 X-Token），由它在本機貼上。沒有文字的項目只留在剪貼簿裡。";
+"RemotePasteHosts" = "被控端位址：";
+"RemotePasteHostsTooltip" = "依序嘗試，以逗號分隔；上次回應的位址優先。";
+"RemotePastePort" = "連接埠：";
+"RemotePasteToken" = "權杖：";
+"RemotePasteTokenSaveFailed" = "權杖未能存入鑰匙圈。";

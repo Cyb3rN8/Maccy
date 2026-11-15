@@ -26,6 +26,8 @@
 	<true/>
 	<key>NSHumanReadableCopyright</key>
 	<string>Copyright © Alexey Rodionov</string>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>Maccy needs local network access to paste on a Mac you are screen sharing with.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>SUEnableDownloaderService</key>

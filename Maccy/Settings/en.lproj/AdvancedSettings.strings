@@ -8,3 +8,10 @@
 "ClearHistoryOnQuitTooltip" = "Automatically remove all unpinned items before quitting the application.";
 "ClearSystemClipboard" = "Clear the system clipboard too";
 "ClearSystemClipboardTooltip" = "When enabled, clearing the history would also clear the current system clipboard.";
+"RemotePaste" = "Paste on the remote Mac when Screen Sharing is frontmost";
+"RemotePasteDescription" = "Screen Sharing drops synthetic ⌘V, so the remote Mac only gets “v”. When on, text is sent to a paste receiver on the remote Mac (POST /paste with X-Token), which pastes it there. Items without text stay on the clipboard.";
+"RemotePasteHosts" = "Remote addresses:";
+"RemotePasteHostsTooltip" = "Tried in order, comma-separated. The last address that answered is tried first.";
+"RemotePastePort" = "Port:";
+"RemotePasteToken" = "Token:";
+"RemotePasteTokenSaveFailed" = "Couldn't save the token to the Keychain.";
